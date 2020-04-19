@@ -1,7 +1,7 @@
 import asyncio
 import os
+from argparse import ArgumentParser
 import re
-import concurrent.futures as cf
 from pprint import pprint
 from aiohttp import ClientSession
 import aiofiles
@@ -49,12 +49,16 @@ async def search_item(item):
     page_html = requests.get(query_link).text
     soup = BeautifulSoup(page_html, 'html.parser')
     page_links = []
-    for page_li in soup.find("ul", class_="pull-right").children:
-        try:
-            if page_li["class"] == ["active"]:
-                continue
-        except KeyError:
-            page_links.append(page_li.find("a")["href"])
+    try:
+        for page_li in soup.find("ul", class_="pull-right").children:
+            try:
+                if page_li["class"] == ["active"]:
+                    continue
+            except KeyError:
+                page_links.append(page_li.find("a")["href"])
+
+    except AttributeError:
+        pass
 
     sem = asyncio.Semaphore(100)
     async with ClientSession() as session:
@@ -80,4 +84,9 @@ async def search_item(item):
         await asyncio.gather(*tasks)
 
 
-asyncio.run(search_item("bible"))
+if __name__ == "__main__":
+    parser = ArgumentParser(
+        "Searches your term in Clipart ETC and downloads all the results")
+    parser.add_argument("term", help="Searches this")
+    args = parser.parse_args()
+    asyncio.run(search_item(args.term))
